@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
+import 'category_screen.dart';
 
 void main() {
   runApp(MyApp());
@@ -51,17 +52,21 @@ class _MyHomePageState extends State<MyHomePage> {
               child: SfCircularChart(
                 //Clicking on Data Labels will send you to a new page
                 onDataLabelTapped: (onTapArgs) {
-                                    String tappedCategory = _chartData[onTapArgs.pointIndex].category;
-                   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CategoryDetailPage(category: tappedCategory),
-                      ),
-                    );
+                  String tappedCategory =
+                      _chartData[onTapArgs.pointIndex].category;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          CategoryView(category: tappedCategory),
+                    ),
+                  );
                 },
                 //Pie Chart Creation
                 title: ChartTitle(text: 'Expense Tracker'),
-                legend: Legend(isVisible: true, overflowMode: LegendItemOverflowMode.wrap,
+                legend: Legend(
+                  isVisible: true,
+                  overflowMode: LegendItemOverflowMode.wrap,
                 ),
                 tooltipBehavior: _tooltipBehavior,
                 selectionGesture: ActivationMode.singleTap,
@@ -74,8 +79,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     //Sets Data Labels as the Category Names
                     dataLabelMapper: (CategoryList data, _) => data.category,
                     dataLabelSettings: DataLabelSettings(isVisible: true),
-  
-                  //  selectionBehavior: _selectionBehavior,
+
+                    //  selectionBehavior: _selectionBehavior,
                   )
                 ],
               ),
@@ -97,7 +102,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-//Inital Categorys *IGNORE NUMBERS***
+//Inital Categories *IGNORE NUMBERS***
   List<CategoryList> getInitialChartData() {
     final List<CategoryList> chartData = [
       CategoryList('Home', 11600),
@@ -110,7 +115,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return chartData;
   }
 
-//Adds a Categgory to the chart if Text-Field isn't Empty
+//Adds a Category to the chart if Text-Field isn't Empty
   void addCategory() {
     setState(() {
       String newCategory = _textFieldController.text;
@@ -128,10 +133,12 @@ class CategoryList {
   final int percentage;
 }
 
+/*
 class CategoryDetailPage extends StatelessWidget {
   final String category;
 
-  const CategoryDetailPage({Key? key, required this.category}) : super(key: key);
+  const CategoryDetailPage({Key? key, required this.category})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -139,9 +146,17 @@ class CategoryDetailPage extends StatelessWidget {
       appBar: AppBar(
         title: Text('Category Detail: $category'),
       ),
-      body: Center(
-        child: Text('Details for category: $category'),
+      body: Column(
+        children: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: (context) => addExpenseView(category: category)));
+            },
+          ),
+        ],
       ),
     );
   }
 }
+*/

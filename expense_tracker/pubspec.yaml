@@ -1,18 +1,18 @@
 name: expense_tracker
 description: "A new Flutter project."
-publish_to: 'none'
+publish_to: "none"
 version: 0.1.0
 
 environment:
-  sdk: '>=3.2.5 <4.0.0'
+  sdk: ">=3.2.5 <4.0.0"
 
 dependencies:
   circular_charts: ^0.0.1
   flutter:
     sdk: flutter
   syncfusion_flutter_charts: ^24.2.8
-
- 
+  sqflite: ^2.0.0
+  path_provider: ^2.0.1
 
 dev_dependencies:
   flutter_test:
