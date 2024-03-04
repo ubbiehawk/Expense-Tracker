@@ -1,6 +1,7 @@
+import 'package:expense_tracker/category_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
-import 'category_screen.dart';
+// Import your CategoryView widget if it's defined in a separate file.
 
 void main() {
   runApp(MyApp());
@@ -50,7 +51,6 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             Expanded(
               child: SfCircularChart(
-                //Clicking on Data Labels will send you to a new page
                 onDataLabelTapped: (onTapArgs) {
                   String tappedCategory =
                       _chartData[onTapArgs.pointIndex].category;
@@ -62,7 +62,57 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   );
                 },
-                //Pie Chart Creation
+                onLegendTapped: (legendTapArgs) {
+                  List<String> categories =
+                      _chartData.map((category) => category.category).toList();
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: Text('Categories'),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: List.generate(
+                            categories.length,
+                            (index) => ListTile(
+                              title: Text(categories[index]),
+                              trailing: SizedBox(
+                                width: 100,
+                                child: Row(
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit),
+                                      onPressed: () {
+                                        // Handle edit button tap
+                                      },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete),
+                                      onPressed: () {
+                                        setState(() {
+                                          _chartData.removeAt(index);
+                                          Navigator.pop(context);
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: Text('Close'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
                 title: ChartTitle(text: 'Expense Tracker'),
                 legend: Legend(
                   isVisible: true,
@@ -76,25 +126,52 @@ class _MyHomePageState extends State<MyHomePage> {
                     xValueMapper: (CategoryList data, _) => data.category,
                     yValueMapper: (CategoryList data, _) => data.percentage,
                     enableTooltip: true,
-                    //Sets Data Labels as the Category Names
                     dataLabelMapper: (CategoryList data, _) => data.category,
                     dataLabelSettings: DataLabelSettings(isVisible: true),
-
-                    //  selectionBehavior: _selectionBehavior,
                   )
                 ],
               ),
             ),
             ElevatedButton.icon(
               onPressed: () {
-                addCategory();
+                showModalBottomSheet(
+                  isScrollControlled: true,
+                  context: context,
+                  builder: (_) {
+                    return SingleChildScrollView(
+                      padding: EdgeInsets.only(
+                        bottom: MediaQuery.of(context).viewInsets.bottom,
+                      ),
+                      child: Container(
+                        padding: EdgeInsets.all(16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextField(
+                              controller: _textFieldController,
+                              decoration: InputDecoration(
+                                hintText: 'Enter category',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                            SizedBox(height: 12),
+                            ElevatedButton(
+                              onPressed: () {
+                                addCategory();
+                                Navigator.pop(context);
+                              },
+                              child: Text('Add Category'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
               },
               icon: Icon(Icons.add),
               label: Text('Add Category'),
-            ),
-            TextField(
-              controller: _textFieldController,
-              decoration: InputDecoration(labelText: "New Category"),
             ),
           ],
         ),
@@ -102,7 +179,6 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-//Inital Categories *IGNORE NUMBERS***
   List<CategoryList> getInitialChartData() {
     final List<CategoryList> chartData = [
       CategoryList('Home', 11600),
@@ -115,7 +191,6 @@ class _MyHomePageState extends State<MyHomePage> {
     return chartData;
   }
 
-//Adds a Category to the chart if Text-Field isn't Empty
   void addCategory() {
     setState(() {
       String newCategory = _textFieldController.text;
@@ -132,6 +207,7 @@ class CategoryList {
   final String category;
   final int percentage;
 }
+
 
 /*
 class CategoryDetailPage extends StatelessWidget {
