@@ -36,6 +36,7 @@ class _MyHomePageState extends State<MyHomePage> {
   late TooltipBehavior _tooltipBehavior;
   late TextEditingController _textFieldController = TextEditingController();
   late SelectionBehavior _selectionBehavior;
+  late int _counter = 0;
 
   @override
   void initState() {
@@ -161,46 +162,181 @@ class _MyHomePageState extends State<MyHomePage> {
                 ],
               ),
             ),
-            ElevatedButton.icon(
-              onPressed: () {
-                showModalBottomSheet(
-                  isScrollControlled: true,
-                  context: context,
-                  builder: (_) {
-                    return SingleChildScrollView(
-                      padding: EdgeInsets.only(
-                        bottom: MediaQuery.of(context).viewInsets.bottom,
-                      ),
-                      child: Container(
-                        padding: EdgeInsets.all(16),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            TextField(
-                              controller: _textFieldController,
-                              decoration: InputDecoration(
-                                hintText: 'Enter category',
-                                border: OutlineInputBorder(),
-                              ),
+            Text(
+              " Total Amount: \$${calculateTotalPercentage()}",
+              style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(
+              height: 70,
+            ),
+            Text(
+              "Monthly Goals:\$$_counter",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+            ),
+            Slider(
+              min: 0,
+              max: 10000,
+              value: _counter.toDouble(),
+              onChanged: (double value) {
+                setState(() {
+                  _counter = value.toInt();
+                });
+              },
+              activeColor: Colors.blue,
+              inactiveColor: Colors.red,
+            ),
+            Row(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () {
+                    showModalBottomSheet(
+                      isScrollControlled: true,
+                      context: context,
+                      builder: (_) {
+                        return SingleChildScrollView(
+                          padding: EdgeInsets.only(
+                            bottom: MediaQuery.of(context).viewInsets.bottom,
+                          ),
+                          child: Container(
+                            padding: EdgeInsets.all(16),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                TextField(
+                                  controller: _textFieldController,
+                                  decoration: InputDecoration(
+                                    hintText: 'Enter category',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                ),
+                                SizedBox(height: 20),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    addCategory();
+                                    Navigator.pop(context);
+                                  },
+                                  child: Text('Add Category'),
+                                ),
+                              ],
                             ),
-                            SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed: () {
-                                addCategory();
-                                Navigator.pop(context);
-                              },
-                              child: Text('Add Category'),
-                            ),
-                          ],
-                        ),
-                      ),
+                          ),
+                        );
+                      },
                     );
                   },
-                );
-              },
-              icon: Icon(Icons.add),
-              label: Text('Add Category'),
+                  icon: Icon(Icons.add),
+                  label: Text('Add Category'),
+                ),
+                SizedBox(
+                  width: 100,
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        return AlertDialog(
+                          title: Text('Categories'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: List.generate(
+                              _chartData.length,
+                              (index) => ListTile(
+                                title: Text(_chartData[index].category),
+                                trailing: SizedBox(
+                                  width: 100,
+                                  child: Row(
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.edit),
+                                        onPressed: () {
+                                          // Show AlertDialog for editing category name
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) {
+                                              // Create a TextEditingController for the AlertDialog
+                                              TextEditingController
+                                                  editingController =
+                                                  TextEditingController(
+                                                      text: _chartData[index]
+                                                          .category);
+
+                                              return AlertDialog(
+                                                title: Text('Edit Category'),
+                                                content: TextField(
+                                                  controller: editingController,
+                                                  decoration: InputDecoration(
+                                                    hintText:
+                                                        'Enter new category name',
+                                                  ),
+                                                ),
+                                                actions: <Widget>[
+                                                  TextButton(
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        _chartData[index]
+                                                                .category =
+                                                            editingController
+                                                                .text;
+                                                      });
+                                                      // Clear the editing controller and close the dialog
+                                                      editingController.clear();
+                                                      Navigator.of(context)
+                                                          .pop();
+                                                    },
+                                                    child: Text('Save'),
+                                                  ),
+                                                  TextButton(
+                                                    onPressed: () {
+                                                      editCategory(
+                                                          editingController
+                                                              as String,
+                                                          index);
+                                                      Navigator.of(context)
+                                                          .pop();
+                                                    },
+                                                    child: Text('Cancel'),
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          );
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete),
+                                        onPressed: () {
+                                          setState(() {
+                                            _chartData.removeAt(index);
+                                          });
+                                          Navigator.pop(context);
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          actions: <Widget>[
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                              child: Text('Close'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                  child: Text("Update / Delete"),
+                ),
+              ],
+            ),
+            SizedBox(
+              height: 10,
             ),
           ],
         ),
@@ -210,12 +346,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
   List<CategoryList> getInitialChartData() {
     final List<CategoryList> chartData = [
-      CategoryList('Home', 11111),
-      CategoryList('Auto', 12490),
-      CategoryList('Grocery', 12900),
-      CategoryList('Savings', 23050),
-      CategoryList('Entertainment', 24880),
-      CategoryList('Bills', 34390),
+      CategoryList('Home', 16667),
+      CategoryList('Auto', 16667),
+      CategoryList('Grocery', 16667),
+      CategoryList('Savings', 16667),
+      CategoryList('Entertainment', 16667),
+      CategoryList('Bills', 16667),
     ];
     return chartData;
   }
@@ -224,15 +360,32 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       String newCategory = _textFieldController.text;
       if (newCategory.isNotEmpty) {
-        _chartData.add(CategoryList(newCategory, 12500));
+        _chartData.add(CategoryList(newCategory, 16667));
         _textFieldController.clear();
       }
     });
+  }
+
+  void editCategory(String editCategory, int index) {
+    setState(() {
+      if (editCategory.isNotEmpty) {
+        _chartData[index].category = editCategory;
+        _textFieldController.clear();
+      }
+    });
+  }
+
+  int calculateTotalPercentage() {
+    int total = 0;
+    for (var category in _chartData) {
+      total += category.percentage;
+    }
+    return total;
   }
 }
 
 class CategoryList {
   CategoryList(this.category, this.percentage);
-  final String category;
+  String category;
   final int percentage;
 }
