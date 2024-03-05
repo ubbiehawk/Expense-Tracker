@@ -1,6 +1,8 @@
 import 'package:expense_tracker/category_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
+import 'database_helper.dart';
+import 'category_screen.dart';
 // Import your CategoryView widget if it's defined in a separate file.
 
 void main() {
@@ -40,7 +42,16 @@ class _MyHomePageState extends State<MyHomePage> {
     _chartData = getInitialChartData();
     _tooltipBehavior = TooltipBehavior(enable: true);
     _selectionBehavior = SelectionBehavior(enable: true);
+    //_getSumTotal();
     super.initState();
+  }
+
+  double total = 0;
+  double sumTotal = 0;
+
+  Future<double> _calculateTotal(String category) async {
+    total = (await DatabaseHelper.calculateTotal(category))[0]['TOTAL'];
+    return total;
   }
 
   @override
@@ -49,6 +60,23 @@ class _MyHomePageState extends State<MyHomePage> {
       child: Scaffold(
         body: Column(
           children: [
+            Container(
+              alignment: Alignment.center,
+              width: 200,
+              height: 40,
+              decoration: const BoxDecoration(
+                  color: Colors.amber,
+                  borderRadius: BorderRadius.all(Radius.circular(10))),
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: Text(
+                  'Total $sumTotal',
+                  style: TextStyle(
+                    fontSize: 24,
+                  ),
+                ),
+              ),
+            ),
             Expanded(
               child: SfCircularChart(
                 onDataLabelTapped: (onTapArgs) {
@@ -91,6 +119,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                       onPressed: () {
                                         setState(() {
                                           _chartData.removeAt(index);
+
                                           Navigator.pop(context);
                                         });
                                       },
@@ -181,7 +210,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   List<CategoryList> getInitialChartData() {
     final List<CategoryList> chartData = [
-      CategoryList('Home', 11600),
+      CategoryList('Home', 11111),
       CategoryList('Auto', 12490),
       CategoryList('Grocery', 12900),
       CategoryList('Savings', 23050),
@@ -207,32 +236,3 @@ class CategoryList {
   final String category;
   final int percentage;
 }
-
-
-/*
-class CategoryDetailPage extends StatelessWidget {
-  final String category;
-
-  const CategoryDetailPage({Key? key, required this.category})
-      : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Category Detail: $category'),
-      ),
-      body: Column(
-        children: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).push(MaterialPageRoute(
-                  builder: (context) => addExpenseView(category: category)));
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-*/

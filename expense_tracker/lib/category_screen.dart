@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+import 'package:percent_indicator/linear_percent_indicator.dart';
+import 'package:sqflite/sqflite.dart';
 import 'main.dart';
 import 'database_helper.dart';
+import 'package:percent_indicator/percent_indicator.dart';
 
 class CategoryView extends StatefulWidget {
   final String category;
@@ -14,13 +18,19 @@ class _CategoryViewState extends State<CategoryView> {
   final String category;
   _CategoryViewState(this.category);
 
+  TextEditingController budgetController = TextEditingController();
   TextEditingController itemController = TextEditingController();
   TextEditingController amountController = TextEditingController();
+
+  double total = 1;
+  double budget = 2;
+  double percentage = 0;
+  Color overBudget = Colors.blue;
 
   @override
   void dispose() {
     super.dispose();
-
+    budgetController.dispose();
     itemController.dispose();
     amountController.dispose();
   }
@@ -29,41 +39,69 @@ class _CategoryViewState extends State<CategoryView> {
 
   //refreshes state of table
   void _refreshExpenses() async {
-    final data = await DatabaseHelper.getItems(category);
+    final data = await DatabaseHelper.getItems();
     setState(() {
       _expenses = data;
+      _calculateTotal();
+      _setGoal();
     });
+  }
+
+  //set the remaining budget value
+  Future<void> _setGoal() async {
+    final bud = (await DatabaseHelper.getBudget())[0]['TOTAL'];
+    setState(() {
+      budget = bud;
+    });
+    percentage = total / budget;
+    if (total > budget) {
+      percentage = 1;
+      overBudget = Colors.red;
+    } else {
+      overBudget = Colors.blue;
+    }
+  }
+
+  Future<void> _editBudget() async {
+    budget = double.parse(budgetController.text);
+    await DatabaseHelper.updateBudget(budget);
+    _setGoal();
   }
 
   //Creates table
   @override
   void initState() {
     super.initState();
+    DatabaseHelper.setCategory(category);
+    _calculateTotal();
     _refreshExpenses();
-    print("..number of items ${_expenses.length}");
   }
 
   //create
   Future<void> _addItem() async {
     await DatabaseHelper.createItem(
-        category, itemController.text, double.parse(amountController.text));
+        itemController.text, double.parse(amountController.text));
     _refreshExpenses();
   }
 
   //update
   Future<void> _updateItem(int id) async {
     await DatabaseHelper.updateItem(
-        category, id, itemController.text, double.parse(amountController.text));
+        id, itemController.text, double.parse(amountController.text));
     _refreshExpenses();
   }
 
   //delete
   Future<void> _deleteItem(int id) async {
-    await DatabaseHelper.deleteItem(category, id);
+    await DatabaseHelper.deleteItem(id);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
       content: Text('Successfully deleted an expense'),
     ));
     _refreshExpenses();
+  }
+
+  Future<void> _calculateTotal() async {
+    total = (await DatabaseHelper.calculateTotal(category))[0]['TOTAL'];
   }
 
   //UI for inputting data into table
@@ -141,50 +179,113 @@ class _CategoryViewState extends State<CategoryView> {
         title: Text('$category'),
         backgroundColor: Colors.purple, //Add $category to display category
       ),
-      body: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            children: [
-              ListView.builder(
-                  scrollDirection: Axis.vertical,
-                  shrinkWrap: true,
-                  itemCount: _expenses.length,
-                  itemBuilder: (context, index) => Card(
-                        color: Colors.green,
-                        margin: const EdgeInsets.all(5),
-                        child: ListTile(
-                            title: Text(_expenses[index]['item']),
-                            subtitle: Text(
-                                '\$' + _expenses[index]['amount'].toString()),
-                            trailing: SizedBox(
-                                width: 100,
-                                child: Row(
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.edit),
-                                      onPressed: () =>
-                                          _showForm(_expenses[index]['id']),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete),
-                                      onPressed: () =>
-                                          _deleteItem(_expenses[index]['id']),
-                                    )
-                                  ],
-                                ))),
-                      ))
-            ],
-          )),
+      body: SingleChildScrollView(
+        child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              children: [
+                Container(
+                  alignment: Alignment.center,
+                  width: 200,
+                  height: 40,
+                  decoration: const BoxDecoration(
+                      color: Colors.amber,
+                      borderRadius: BorderRadius.all(Radius.circular(10))),
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: Text(
+                      'Total: \$$total',
+                      style: const TextStyle(
+                        fontSize: 24,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text('Budget Goal',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline)),
+                LinearPercentIndicator(
+                  animation: true,
+                  animationDuration: 2000,
+                  percent: percentage,
+                  center: (Text('\$$total/\$$budget')),
+                  barRadius: const Radius.circular(20),
+                  lineHeight: 30,
+                  progressColor: overBudget,
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    showModalBottomSheet(
+                        context: context,
+                        builder: (_) {
+                          return Container(
+                            padding: const EdgeInsets.all(10),
+                            child: Column(
+                              children: [
+                                TextField(
+                                  maxLines: null,
+                                  controller: budgetController,
+                                  decoration: const InputDecoration(
+                                      hintText: 'Enter Budget Here',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(20)),
+                                      )),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    _editBudget();
+                                    budgetController.text = '';
+                                    Navigator.pop(context);
+                                  },
+                                  child: Text('Submit'),
+                                ),
+                              ],
+                            ),
+                          );
+                        });
+                  },
+                  child: const Text('Edit Budget'),
+                ),
+                const SizedBox(height: 10),
+                ListView.builder(
+                    scrollDirection: Axis.vertical,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _expenses.length,
+                    itemBuilder: (context, index) => Card(
+                          color: Colors.green,
+                          margin: const EdgeInsets.all(5),
+                          child: ListTile(
+                              title: Text(_expenses[index]['item']),
+                              subtitle: Text('\$${_expenses[index]['amount']}'),
+                              trailing: SizedBox(
+                                  width: 100,
+                                  child: Row(
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.edit),
+                                        onPressed: () =>
+                                            _showForm(_expenses[index]['id']),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete),
+                                        onPressed: () =>
+                                            _deleteItem(_expenses[index]['id']),
+                                      )
+                                    ],
+                                  ))),
+                        ))
+              ],
+            )),
+      ),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
         onPressed: () => _showForm(null),
       ),
     );
   }
-}
-
-class CategoryList {
-  CategoryList(this.category, this.percentage);
-  final String category;
-  final int percentage;
 }

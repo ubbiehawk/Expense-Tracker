@@ -13,6 +13,7 @@ dependencies:
   syncfusion_flutter_charts: ^24.2.8
   sqflite: ^2.0.0
   path_provider: ^2.0.1
+  percent_indicator: ^4.0.1
 
 dev_dependencies:
   flutter_test:
