@@ -52,8 +52,77 @@ class _MyHomePageState extends State<MyHomePage> {
       child: Scaffold(
         body: Column(
           children: [
+    Padding(
+      padding: EdgeInsets.fromLTRB(75, 16, 0, 0),
+        child: Row(
+          children: [
+           
+            Text(
+              "Monthly Goals:\$$_counter",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+            ),
+            IconButton(
+              onPressed:(){
+                showModalBottomSheet(
+                      isScrollControlled: true,
+                      context: context,
+                      builder: (_) {
+                        return SingleChildScrollView(
+                          padding: EdgeInsets.only(
+                            bottom: MediaQuery.of(context).viewInsets.bottom,
+                          ),
+                          child: Container(
+                            padding: EdgeInsets.all(16),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                TextField(
+                                  controller: _textFieldController,
+                                  decoration: InputDecoration(
+                                    hintText: 'Edit Monthly Goal ',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                ),
+                                SizedBox(height: 20),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    _counter = int.parse(_textFieldController.text);
+                                    
+                                    Navigator.pop(context);
+                                  },
+                                  child: Text('Edit Goal'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+            },  icon: const Icon(Icons.edit),)
+          ],
+        ),
+             
+
+    
+    ),
+                Slider(
+            
+              min: 0,
+              max: 20000,
+              value: _counter.toDouble(),
+              onChanged: (double value) {
+                setState(() {
+                  _counter = value.toInt();
+                });
+              },
+              activeColor: Colors.blue,
+              secondaryActiveColor: Colors.green,
+              inactiveColor: Colors.red,
+            ),
             Expanded(
-              child: SfCircularChart(
+              child: 
+              SfCircularChart(
                 onDataLabelTapped: (onTapArgs) {
                   String tappedCategory =
                       _chartData[onTapArgs.pointIndex].category;
@@ -65,7 +134,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   );
                 },
-                title: ChartTitle(text: 'Expense Tracker'),
+                // title: ChartTitle(text: 'Expense Tracker'),
+                
                 legend: Legend(
                   isVisible: true,
                   overflowMode: LegendItemOverflowMode.wrap,
@@ -91,22 +161,7 @@ class _MyHomePageState extends State<MyHomePage> {
             SizedBox(
               height: 70,
             ),
-            Text(
-              "Monthly Goals:\$$_counter",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-            ),
-            Slider(
-              min: 0,
-              max: 10000,
-              value: _counter.toDouble(),
-              onChanged: (double value) {
-                setState(() {
-                  _counter = value.toInt();
-                });
-              },
-              activeColor: Colors.blue,
-              inactiveColor: Colors.red,
-            ),
+           
             Row(
               children: [
                 ElevatedButton.icon(
