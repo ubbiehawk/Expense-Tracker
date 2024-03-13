@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
-import 'package:sqflite/sqflite.dart';
-import 'main.dart';
 import 'database_helper.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 
@@ -23,7 +20,7 @@ class _CategoryViewState extends State<CategoryView> {
   TextEditingController amountController = TextEditingController();
 
   double total = 1;
-  double budget = 2;
+  double budget = 500;
   double percentage = 0;
   Color overBudget = Colors.blue;
 
@@ -176,6 +173,15 @@ class _CategoryViewState extends State<CategoryView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: GestureDetector(
+          child: const Icon(
+            Icons.arrow_back_ios,
+            color: Colors.black,
+          ),
+          onTap: () {
+            Navigator.pop(context);
+          },
+        ),
         title: Text('$category'),
         backgroundColor: Colors.purple, //Add $category to display category
       ),

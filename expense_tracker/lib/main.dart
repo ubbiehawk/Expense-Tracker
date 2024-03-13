@@ -2,14 +2,14 @@ import 'package:expense_tracker/category_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'database_helper.dart';
-import 'category_screen.dart';
-// Import your CategoryView widget if it's defined in a separate file.
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -34,16 +34,40 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   late List<CategoryList> _chartData;
   late TooltipBehavior _tooltipBehavior;
-  late TextEditingController _textFieldController = TextEditingController();
-  late SelectionBehavior _selectionBehavior;
+  final TextEditingController _textFieldController = TextEditingController();
+  //late SelectionBehavior _selectionBehavior;
   late int _counter = 0;
+  int empty = 0;
 
   @override
   void initState() {
     _chartData = getInitialChartData();
     _tooltipBehavior = TooltipBehavior(enable: true);
-    _selectionBehavior = SelectionBehavior(enable: true);
+    //_selectionBehavior = SelectionBehavior(enable: true);
     super.initState();
+    _refreshChart();
+  }
+
+  void _refreshChart() {
+    setState(() {
+      _calculateTotals();
+    });
+  }
+
+  Future<void> _calculateTotals() async {
+    for (var total in _chartData) {
+      double num =
+          (await DatabaseHelper.calculateTotal(total.category))[0]['TOTAL'];
+      if (num == 0) {
+        empty++;
+        total.percentage = num;
+      } else {
+        if (empty != 0) {
+          empty--;
+        }
+        total.percentage = num;
+      }
+    }
   }
 
   @override
@@ -52,62 +76,61 @@ class _MyHomePageState extends State<MyHomePage> {
       child: Scaffold(
         body: Column(
           children: [
-    Padding(
-      padding: EdgeInsets.fromLTRB(75, 16, 0, 0),
-        child: Row(
-          children: [
-           
-            Text(
-              "Monthly Goals:\$$_counter",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-            ),
-            IconButton(
-              onPressed:(){
-                showModalBottomSheet(
-                      isScrollControlled: true,
-                      context: context,
-                      builder: (_) {
-                        return SingleChildScrollView(
-                          padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(context).viewInsets.bottom,
-                          ),
-                          child: Container(
-                            padding: EdgeInsets.all(16),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                TextField(
-                                  controller: _textFieldController,
-                                  decoration: InputDecoration(
-                                    hintText: 'Edit Monthly Goal ',
-                                    border: OutlineInputBorder(),
-                                  ),
-                                ),
-                                SizedBox(height: 20),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    _counter = int.parse(_textFieldController.text);
-                                    
-                                    Navigator.pop(context);
-                                  },
-                                  child: Text('Edit Goal'),
-                                ),
-                              ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(75, 16, 0, 0),
+              child: Row(
+                children: [
+                  Text(
+                    "Monthly Goals:\$$_counter",
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 20),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      showModalBottomSheet(
+                        isScrollControlled: true,
+                        context: context,
+                        builder: (_) {
+                          return SingleChildScrollView(
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
                             ),
-                          ),
-                        );
-                      },
-                    );
-            },  icon: const Icon(Icons.edit),)
-          ],
-        ),
-             
+                            child: Container(
+                              padding: EdgeInsets.all(16),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  TextField(
+                                    controller: _textFieldController,
+                                    decoration: const InputDecoration(
+                                      hintText: 'Edit Monthly Goal ',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      _counter =
+                                          int.parse(_textFieldController.text);
 
-    
-    ),
-                Slider(
-            
+                                      Navigator.pop(context);
+                                    },
+                                    child: const Text('Edit Goal'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    icon: const Icon(Icons.edit),
+                  )
+                ],
+              ),
+            ),
+            Slider(
               min: 0,
               max: 20000,
               value: _counter.toDouble(),
@@ -121,22 +144,24 @@ class _MyHomePageState extends State<MyHomePage> {
               inactiveColor: Colors.red,
             ),
             Expanded(
-              child: 
-              SfCircularChart(
+              child: SfCircularChart(
                 onDataLabelTapped: (onTapArgs) {
                   String tappedCategory =
                       _chartData[onTapArgs.pointIndex].category;
+                  //Navigate to categories
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) =>
                           CategoryView(category: tappedCategory),
                     ),
-                  );
+                  ).then((_) {
+                    _refreshChart();
+                  });
                 },
                 // title: ChartTitle(text: 'Expense Tracker'),
-                
-                legend: Legend(
+
+                legend: const Legend(
                   isVisible: true,
                   overflowMode: LegendItemOverflowMode.wrap,
                 ),
@@ -149,19 +174,18 @@ class _MyHomePageState extends State<MyHomePage> {
                     yValueMapper: (CategoryList data, _) => data.percentage,
                     enableTooltip: true,
                     dataLabelMapper: (CategoryList data, _) => data.category,
-                    dataLabelSettings: DataLabelSettings(isVisible: true),
+                    dataLabelSettings: const DataLabelSettings(isVisible: true),
                   )
                 ],
               ),
             ),
             Text(
               " Total Amount: \$${calculateTotalPercentage()}",
-              style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
             ),
-            SizedBox(
+            const SizedBox(
               height: 70,
             ),
-           
             Row(
               children: [
                 ElevatedButton.icon(
@@ -175,25 +199,25 @@ class _MyHomePageState extends State<MyHomePage> {
                             bottom: MediaQuery.of(context).viewInsets.bottom,
                           ),
                           child: Container(
-                            padding: EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(16),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 TextField(
                                   controller: _textFieldController,
-                                  decoration: InputDecoration(
+                                  decoration: const InputDecoration(
                                     hintText: 'Enter category',
                                     border: OutlineInputBorder(),
                                   ),
                                 ),
-                                SizedBox(height: 20),
+                                const SizedBox(height: 20),
                                 ElevatedButton(
                                   onPressed: () {
                                     addCategory();
                                     Navigator.pop(context);
                                   },
-                                  child: Text('Add Category'),
+                                  child: const Text('Add Category'),
                                 ),
                               ],
                             ),
@@ -202,10 +226,10 @@ class _MyHomePageState extends State<MyHomePage> {
                       },
                     );
                   },
-                  icon: Icon(Icons.add),
-                  label: Text('Add Category'),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Category'),
                 ),
-                SizedBox(
+                const SizedBox(
                   width: 80,
                 ),
                 ElevatedButton(
@@ -214,7 +238,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       context: context,
                       builder: (context) {
                         return AlertDialog(
-                          title: Text('Categories'),
+                          title: const Text('Categories'),
                           content: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: List.generate(
@@ -240,10 +264,12 @@ class _MyHomePageState extends State<MyHomePage> {
                                                           .category);
 
                                               return AlertDialog(
-                                                title: Text('Edit Category'),
+                                                title:
+                                                    const Text('Edit Category'),
                                                 content: TextField(
                                                   controller: editingController,
-                                                  decoration: InputDecoration(
+                                                  decoration:
+                                                      const InputDecoration(
                                                     hintText:
                                                         'Enter new category name',
                                                   ),
@@ -262,7 +288,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       Navigator.of(context)
                                                           .pop();
                                                     },
-                                                    child: Text('Save'),
+                                                    child: const Text('Save'),
                                                   ),
                                                   TextButton(
                                                     onPressed: () {
@@ -273,7 +299,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       Navigator.of(context)
                                                           .pop();
                                                     },
-                                                    child: Text('Cancel'),
+                                                    child: const Text('Cancel'),
                                                   ),
                                                 ],
                                               );
@@ -301,14 +327,14 @@ class _MyHomePageState extends State<MyHomePage> {
                               onPressed: () {
                                 Navigator.of(context).pop();
                               },
-                              child: Text('Close'),
+                              child: const Text('Close'),
                             ),
                           ],
                         );
                       },
                     );
                   },
-                  child: Text("Update / Delete"),
+                  child: const Text("Update / Delete"),
                 ),
               ],
             ),
@@ -320,12 +346,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
   List<CategoryList> getInitialChartData() {
     final List<CategoryList> chartData = [
-      CategoryList('Home', 16667),
-      CategoryList('Auto', 16667),
-      CategoryList('Grocery', 16667),
-      CategoryList('Savings', 16667),
-      CategoryList('Entertainment', 16667),
-      CategoryList('Bills', 16667),
+      CategoryList('Home', 100),
+      CategoryList('Auto', 100),
+      CategoryList('Grocery', 100),
+      CategoryList('Savings', 100),
+      CategoryList('Entertainment', 100),
+      CategoryList('Bills', 100),
     ];
     return chartData;
   }
@@ -349,11 +375,12 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  int calculateTotalPercentage() {
-    int total = 0;
+  double calculateTotalPercentage() {
+    double total = 0;
     for (var category in _chartData) {
       total += category.percentage;
     }
+    total -= (100 * empty);
     return total;
   }
 }
@@ -361,5 +388,5 @@ class _MyHomePageState extends State<MyHomePage> {
 class CategoryList {
   CategoryList(this.category, this.percentage);
   String category;
-  final int percentage;
+  double percentage;
 }
