@@ -1,7 +1,7 @@
 import 'package:expense_tracker/category_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
-import 'database_helper.dart';
+import 'ExpenseTracker_Database.dart';
 
 void main() {
   runApp(const MyApp());
@@ -37,7 +37,6 @@ class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _textFieldController = TextEditingController();
   //late SelectionBehavior _selectionBehavior;
   late int _counter = 0;
-  int empty = 0;
 
   @override
   void initState() {
@@ -56,22 +55,21 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _calculateTotals() async {
     for (var total in _chartData) {
-      double num =
-          (await DatabaseHelper.calculateTotal(total.category))[0]['TOTAL'];
-      if (num == 0) {
-        empty++;
-        total.percentage = num;
-      } else {
-        if (empty != 0) {
-          empty--;
-        }
-        total.percentage = num;
+      total.percentage =
+          (await DatabaseHelper.calculateTotal(total.category))[0]['TOTAL'] ??
+              0;
+      if (total.percentage == 0) {
+        total.isEmpty = true;
+        total.percentage = 100;
+      } else if (total.percentage != 0) {
+        total.isEmpty = false;
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    _refreshChart();
     return SafeArea(
       child: Scaffold(
         body: Column(
@@ -155,7 +153,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       builder: (context) =>
                           CategoryView(category: tappedCategory),
                     ),
-                  ).then((_) {
+                  );
+                  setState(() {
                     _refreshChart();
                   });
                 },
@@ -346,12 +345,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
   List<CategoryList> getInitialChartData() {
     final List<CategoryList> chartData = [
-      CategoryList('Home', 100),
-      CategoryList('Auto', 100),
-      CategoryList('Grocery', 100),
-      CategoryList('Savings', 100),
-      CategoryList('Entertainment', 100),
-      CategoryList('Bills', 100),
+      CategoryList('Home', 100, true),
+      CategoryList('Auto', 100, true),
+      CategoryList('Bills', 100, true),
+      CategoryList('Grocery', 100, true),
+      CategoryList('Savings', 100, true),
+      CategoryList('Entertainment', 100, true),
     ];
     return chartData;
   }
@@ -360,7 +359,7 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       String newCategory = _textFieldController.text;
       if (newCategory.isNotEmpty) {
-        _chartData.add(CategoryList(newCategory, 16667));
+        _chartData.add(CategoryList(newCategory, 100, true));
         _textFieldController.clear();
       }
     });
@@ -378,15 +377,17 @@ class _MyHomePageState extends State<MyHomePage> {
   double calculateTotalPercentage() {
     double total = 0;
     for (var category in _chartData) {
-      total += category.percentage;
+      if (category.isEmpty == false) {
+        total += category.percentage;
+      }
     }
-    total -= (100 * empty);
     return total;
   }
 }
 
 class CategoryList {
-  CategoryList(this.category, this.percentage);
+  CategoryList(this.category, this.percentage, this.isEmpty);
   String category;
   double percentage;
+  bool isEmpty;
 }

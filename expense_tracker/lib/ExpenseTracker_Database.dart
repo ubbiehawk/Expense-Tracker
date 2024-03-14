@@ -17,7 +17,6 @@ class DatabaseHelper {
       id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       item TEXT,
       amount DOUBLE,
-      budget DOUBLE,
       createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
     """);
@@ -25,7 +24,6 @@ class DatabaseHelper {
       id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       item TEXT,
       amount DOUBLE,
-      budget DOUBLE,
       createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
     """);
@@ -33,7 +31,6 @@ class DatabaseHelper {
       id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       item TEXT,
       amount DOUBLE,
-      budget DOUBLE,
       createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
     """);
@@ -41,7 +38,6 @@ class DatabaseHelper {
       id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       item TEXT,
       amount DOUBLE,
-      budget DOUBLE,
       createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
     """);
@@ -49,7 +45,6 @@ class DatabaseHelper {
       id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       item TEXT,
       amount DOUBLE,
-      budget DOUBLE,
       createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
     """);
@@ -57,6 +52,11 @@ class DatabaseHelper {
       id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       item TEXT,
       amount DOUBLE,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """);
+    await database.execute("""CREATE TABLE IF NOT EXISTS Budget(
+      category TEXT PRIMARY KEY,
       budget DOUBLE,
       createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
@@ -84,7 +84,6 @@ class DatabaseHelper {
     final id = await db.insert(
       category,
       data,
-      //conflictAlgorithm: sql.ConflictAlgorithm.replace); supposed to prevent duplicate entry
     );
     return id;
   }
@@ -133,23 +132,36 @@ class DatabaseHelper {
     return total.toList();
   }
 
-  static Future<int> setBudget(double budget) async {
+  static Future<void> initBudget() async {
     final db = await DatabaseHelper.db();
-    final data = {'budget': budget};
-    final id = db.update(category, data, where: "id = 1");
-    return id;
+
+    await db.rawInsert(
+        'INSERT OR IGNORE INTO Budget(category, budget) VALUES("Home", 500)');
+    await db.rawInsert(
+        'INSERT OR IGNORE INTO Budget(category, budget) VALUES("Auto", 500)');
+    await db.rawInsert(
+        'INSERT OR IGNORE INTO Budget(category, budget) VALUES("Grocery", 500)');
+    await db.rawInsert(
+        'INSERT OR IGNORE INTO Budget(category, budget) VALUES("Savings", 500)');
+    await db.rawInsert(
+        'INSERT OR IGNORE INTO Budget(category, budget) VALUES("Entertainment", 500)');
+    await db.rawInsert(
+        'INSERT OR IGNORE INTO Budget(category, budget) VALUES("Budget", 500)');
   }
 
   static Future<int> updateBudget(double budget) async {
     final db = await DatabaseHelper.db();
-    final data = {'budget': budget, 'createdAt': DateTime.now().toString()};
+    final data = {'budget': budget};
 
-    final result = await db.update(category, data, where: "id = 1");
+    final result = await db
+        .update('Budget', data, where: "category = ?", whereArgs: [category]);
     return result;
   }
 
   static Future<List<Map<String, dynamic>>> getBudget() async {
     final db = await DatabaseHelper.db();
-    return db.rawQuery('SELECT budget AS TOTAL FROM $category');
+    var budget = (await db
+        .rawQuery('SELECT budget FROM Budget WHERE category = category'));
+    return budget.toList();
   }
 }

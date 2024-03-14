@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
-import 'database_helper.dart';
+import 'package:sqflite/sqflite.dart';
+import 'ExpenseTracker_Database.dart';
 import 'package:percent_indicator/percent_indicator.dart';
+import 'main.dart';
 
 class CategoryView extends StatefulWidget {
   final String category;
@@ -19,8 +21,8 @@ class _CategoryViewState extends State<CategoryView> {
   TextEditingController itemController = TextEditingController();
   TextEditingController amountController = TextEditingController();
 
-  double total = 1;
-  double budget = 500;
+  double total = 0;
+  static double budget = 500;
   double percentage = 0;
   Color overBudget = Colors.blue;
 
@@ -40,28 +42,39 @@ class _CategoryViewState extends State<CategoryView> {
     setState(() {
       _expenses = data;
       _calculateTotal();
-      _setGoal();
     });
+    _setGoal();
+  }
+
+  Future<void> _calculateTotal() async {
+    total = (await DatabaseHelper.calculateTotal(category))[0]['TOTAL'] ?? 0;
   }
 
   //set the remaining budget value
   Future<void> _setGoal() async {
-    final bud = (await DatabaseHelper.getBudget())[0]['TOTAL'];
+    budget = (await DatabaseHelper.getBudget())[0][category] ?? 500;
     setState(() {
-      budget = bud;
+      budget;
     });
-    percentage = total / budget;
-    if (total > budget) {
-      percentage = 1;
-      overBudget = Colors.red;
+    if (total == 0) {
+      setState(() {
+        percentage = 0;
+      });
+    } else if (total > budget) {
+      setState(() {
+        percentage = 1;
+        overBudget = Colors.red;
+      });
     } else {
-      overBudget = Colors.blue;
+      setState(() {
+        percentage = (total / budget);
+        overBudget = Colors.blue;
+      });
     }
   }
 
-  Future<void> _editBudget() async {
-    budget = double.parse(budgetController.text);
-    await DatabaseHelper.updateBudget(budget);
+  Future<void> _updateBudget() async {
+    await DatabaseHelper.updateBudget(double.parse(budgetController.text));
     _setGoal();
   }
 
@@ -70,6 +83,7 @@ class _CategoryViewState extends State<CategoryView> {
   void initState() {
     super.initState();
     DatabaseHelper.setCategory(category);
+    DatabaseHelper.initBudget();
     _calculateTotal();
     _refreshExpenses();
   }
@@ -97,10 +111,6 @@ class _CategoryViewState extends State<CategoryView> {
     _refreshExpenses();
   }
 
-  Future<void> _calculateTotal() async {
-    total = (await DatabaseHelper.calculateTotal(category))[0]['TOTAL'];
-  }
-
   //UI for inputting data into table
   void _showForm(int? id) async {
     //If id is created already, allow update/delete
@@ -121,7 +131,7 @@ class _CategoryViewState extends State<CategoryView> {
                 top: 15,
                 left: 15,
                 right: 15,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 120,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 80,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -171,6 +181,7 @@ class _CategoryViewState extends State<CategoryView> {
 
   @override
   Widget build(BuildContext context) {
+    _refreshExpenses();
     return Scaffold(
       appBar: AppBar(
         leading: GestureDetector(
@@ -243,7 +254,7 @@ class _CategoryViewState extends State<CategoryView> {
                                 ),
                                 ElevatedButton(
                                   onPressed: () {
-                                    _editBudget();
+                                    _updateBudget();
                                     budgetController.text = '';
                                     Navigator.pop(context);
                                   },
